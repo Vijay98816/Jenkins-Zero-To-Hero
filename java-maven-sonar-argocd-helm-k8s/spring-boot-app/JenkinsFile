@@ -1,8 +1,8 @@
 pipeline {
   agent {
     docker {
-      image 'vijay934/maven-docker-agent:latest'
-      args '--entrypoint=\'\' --user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+      image 'vijay934/maven-docker-agent:v2.0'
+      args '--entrypoint="" -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
     }
   }
   stages {
@@ -53,7 +53,7 @@ pipeline {
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 dir('java-maven-sonar-argocd-helm-k8s') {
-                  checkout scm  // ✅ This brings back .git inside the container
+                  checkout scm  // ensures .git is available
                     sh '''
                      git config user.email "vijaykumar16898@gmail.com"
                      git config user.name "Vijay98816"
