@@ -5,14 +5,12 @@ pipeline {
       args '--entrypoint="" -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
-
   environment {
     SONAR_URL = "http://54.160.187.59:9000"
     GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
     GIT_USER_NAME = "Vijay98816"
     DOCKER_IMAGE = "vijay934/ultimate-cicd:${BUILD_NUMBER}"
   }
-
   stages {
     stage('Checkout') {
       steps {
@@ -20,18 +18,26 @@ pipeline {
         sh 'echo ✅ Code checked out successfully!'
       }
     }
-
+    stage('Fix Permissions') {
+      steps {
+        sh '''
+          cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+          # Force remove the target directory if it exists
+          rm -rf target || true
+          # Create target directory with proper permissions
+          mkdir -p target
+          chmod -R 777 target
+        '''
+      }
+    }
     stage('Build and Test') {
       steps {
         sh '''
           cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-          echo "Fixing file permissions if needed..."
-          chown -R $(id -u):$(id -g) target || true
           mvn clean package
         '''
       }
     }
-
     stage('Static Code Analysis') {
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -42,7 +48,6 @@ pipeline {
         }
       }
     }
-
     stage('Build and Push Docker Image') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -55,7 +60,6 @@ pipeline {
         }
       }
     }
-
     stage('Update Deployment File') {
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
@@ -73,10 +77,10 @@ pipeline {
       }
     }
   }
-
   post {
     always {
       echo '🧹 Cleaning up target directory to avoid future permission issues...'
+      sh 'chmod -R 777 java-maven-sonar-argocd-helm-k8s/spring-boot-app/target || true'
       sh 'rm -rf java-maven-sonar-argocd-helm-k8s/spring-boot-app/target || true'
     }
     success {
