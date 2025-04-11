@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'vijay934/maven-docker-agent:v2.0'
-      args '--entrypoint="" -v /var/run/docker.sock:/var/run/docker.sock'
+      args '--user root --entrypoint="" -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
   environment {
@@ -18,22 +18,15 @@ pipeline {
         sh 'echo ✅ Code checked out successfully!'
       }
     }
-    stage('Fix Permissions') {
-      steps {
-        sh '''
-          cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-          # Force remove the target directory if it exists
-          rm -rf target || true
-          # Create target directory with proper permissions
-          mkdir -p target
-          chmod -R 777 target
-        '''
-      }
-    }
     stage('Build and Test') {
       steps {
         sh '''
           cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+          
+          # Force remove target directory with elevated privileges
+          rm -rf target || true
+          
+          # Run Maven build
           mvn clean package
         '''
       }
@@ -79,8 +72,7 @@ pipeline {
   }
   post {
     always {
-      echo '🧹 Cleaning up target directory to avoid future permission issues...'
-      sh 'chmod -R 777 java-maven-sonar-argocd-helm-k8s/spring-boot-app/target || true'
+      echo '🧹 Final cleanup of workspace...'
       sh 'rm -rf java-maven-sonar-argocd-helm-k8s/spring-boot-app/target || true'
     }
     success {
