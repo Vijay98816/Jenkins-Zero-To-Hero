@@ -17,14 +17,18 @@ pipeline {
     stage('Checkout') {
       steps {
         checkout scm
-        sh 'echo  Code checked out successfully!'
+        sh 'echo ✅ Code checked out successfully!'
       }
     }
 
     stage('Build and Test') {
       steps {
-        sh 'ls -ltr'
-        sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
+        sh '''
+          cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+          echo "Fixing file permissions if needed..."
+          chown -R $(id -u):$(id -g) target || true
+          mvn clean package
+        '''
       }
     }
 
@@ -67,6 +71,19 @@ pipeline {
           }
         }
       }
+    }
+  }
+
+  post {
+    always {
+      echo '🧹 Cleaning up target directory to avoid future permission issues...'
+      sh 'rm -rf java-maven-sonar-argocd-helm-k8s/spring-boot-app/target || true'
+    }
+    success {
+      echo '🎉 Pipeline completed successfully!'
+    }
+    failure {
+      echo '❌ Pipeline failed. Check the logs above for details.'
     }
   }
 }
