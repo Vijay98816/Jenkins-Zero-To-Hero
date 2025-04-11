@@ -52,7 +52,8 @@ pipeline {
         }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''
+                dir('java-maven-sonar-argocd-helm-k8s') {
+                  sh '''
                     git config user.email "vijaykumar16898@gmail.com"
                     git config user.name "Vijay98816"
                     BUILD_NUMBER=${BUILD_NUMBER}
